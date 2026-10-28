@@ -1,0 +1,103 @@
+import os
+import sys
+import requests
+
+RAW_URL = "https://raw.githubusercontent.com/mamistar/Tiktok-datas/main/Data%20gmail"
+CACHE_FILE = "data_gmail.txt"
+
+def download_data():
+    if os.path.exists(CACHE_FILE):
+        with open(CACHE_FILE, "r", encoding="utf-8", errors="ignore") as f:
+            return f.readlines()
+            
+    try:
+        r = requests.get(RAW_URL, timeout=15)
+        if r.status_code == 200:
+            lines = r.text.splitlines()
+            with open(CACHE_FILE, "w", encoding="utf-8") as f:
+                f.write(r.text)
+            return lines
+        else:
+            return []
+    except:
+        return []
+
+def search_data(lines, target_user, target_email):
+    found_user = None
+    found_email = None
+    
+    t_user = target_user.strip().lower() if target_user else None
+    t_mail = target_email.strip().lower() if target_email else None
+
+    for line in lines:
+        line = line.strip()
+        if not line or ":" not in line:
+            continue
+            
+        parts = line.split(":", 1)
+        identifier = parts[0].strip()
+        second_part = parts[1].strip()
+        
+        if t_user and second_part.lower() == t_user:
+            found_user = {"gmail": identifier, "user": second_part}
+
+        if t_mail and identifier.lower() == t_mail:
+            found_email = {"gmail": identifier, "user": second_part}
+
+    return found_user, found_email
+
+def main():
+    lines = download_data()
+    if not lines:
+        print("Veritabanı yüklenemedi. İnternetinizi kontrol edin.")
+        sys.exit(1)
+
+    while True:
+        os.system("cls" if os.name == "nt" else "clear")
+        
+        print("""
+████████╗██╗██╗  ██╗████████╗ ██████╗ ██╗  ██╗
+╚══██╔══╝██║██║ ██╔╝╚══██╔══╝██╔═══██╗██║ ██╔╝
+   ██║   ██║█████╔╝    ██║   ██║   ██║█████╔╝ 
+   ██║   ██║██╔═██╗    ██║   ██║   ██║██╔═██╗ 
+   ██║   ██║██║  ██╗   ██║   ╚██████╔╝██║  ██╗
+   ╚═╝   ╚═╝╚═╝  ╚═╝   ╚═╝    ╚═════╝ ╚═╝  ╚═╝
+""")
+        print("                 MAMİSTARDEV\n")
+        
+        user_input = input("Kullanıcı Adı (OPSİYONEL): ").strip()
+        email_input = input("Gmail (OPSİYONEL): ").strip()
+
+        if not user_input and not email_input:
+            print("\nHata: Kriter girilmedi.")
+            input("Devam etmek için Enter'a basın...")
+            continue
+
+        print("\nVeritabanında Aranıyor...\n")
+        user_res, email_res = search_data(lines, user_input, email_input)
+        
+        print("==================================================")
+        
+        if user_res:
+            print("Bulundu √")
+            print(f"Kullanıcı Adı: {user_res['user']}")
+            print(f"Gmail: {user_res['gmail']}")
+        elif email_res:
+            print("Bulundu √")
+            print(f"Kullanıcı Adı: {email_res['user']}")
+            print(f"Gmail: {email_res['gmail']}")
+        else:
+            print("Bulunamadı: None")
+            
+        print("==================================================\n")
+        
+        secim = input("Çıkış Yap (Enter): ").strip().lower()
+        if secim == 'q':
+            print("Programdan çıkılıyor...")
+            break
+
+if __name__ == "__main__":
+    try:
+        main()
+    except KeyboardInterrupt:
+        print("\nİptal edildi.")
