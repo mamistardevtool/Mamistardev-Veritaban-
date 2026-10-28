@@ -1,2 +1,0 @@
-# Mamistardev-Veritaban-
-Mamistardev Toolları
