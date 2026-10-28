@@ -1,0 +1,108 @@
+import os
+import sys
+
+DOSYA_YOLU = "/storage/emulated/0/Delta/387k Discord.txt"
+
+def download_data():
+    if os.path.exists(DOSYA_YOLU):
+        with open(DOSYA_YOLU, "r", encoding="utf-8", errors="ignore") as f:
+            return f.readlines()
+    else:
+        print(f"\nHata: Dosya bulunamadı!\nKontrol edilen yol: {DOSYA_YOLU}")
+        return []
+
+def search_data(lines, target_user, target_email):
+    found_line = None
+    
+    t_user = target_user.strip().lower() if target_user else None
+    t_mail = target_email.strip().lower() if target_email else None
+
+    for line in lines:
+        line = line.strip()
+        if not line or ":" not in line:
+            continue
+            
+        parts = line.split(":")
+        
+        # Aranan kullanıcı adı veya mail, satırdaki herhangi bir parçaya eşitse
+        if t_user:
+            for part in parts:
+                if part.strip().lower() == t_user:
+                    found_line = line
+                    break
+                    
+        if t_mail and not found_line:
+            if parts[0].strip().lower() == t_mail:
+                found_line = line
+        
+        if found_line:
+            break
+
+    if found_line:
+        # Bulunan satırı iki nokta üst üstelerden parçala
+        f_parts = found_line.split(":")
+        gmail = f_parts[0].strip()
+        
+        # Eğer 3 parçalıysa (email:kullanıcıadı:şifre), ortadaki kullanıcı adıdır.
+        # Eğer 2 parçalıysa, sağdaki kullanıcı adıdır.
+        if len(f_parts) >= 3:
+            user = f_parts[1].strip()
+        elif len(f_parts) == 2:
+            user = f_parts[1].strip()
+        else:
+            user = "Bilinmiyor"
+            
+        return {"gmail": gmail, "user": user}
+        
+    return None
+
+def main():
+    lines = download_data()
+    if not lines:
+        sys.exit(1)
+
+    while True:
+        os.system("cls" if os.name == "nt" else "clear")
+        
+        print("""
+██████╗ ██╗███████╗ ██████╗ ██████╗ ██████╗ ██████╗ 
+██╔══██╗██║██╔════╝██╔════╝██╔═══██╗██╔══██╗██╔══██╗
+██║  ██║██║███████╗██║     ██║   ██║██████╔╝██║  ██║
+██║  ██║██║╚════██║██║     ██║   ██║██╔══██╗██║  ██║
+██████╔╝██║███████║╚██████╗╚██████╔╝██║  ██║██████╔╝
+╚═════╝ ╚═╝╚══════╝ ╚═════╝ ╚═════╝ ╚═╝  ╚═╝╚═════╝ 
+""")
+        print("                 MAMİSTARDEV\n")
+        
+        user_input = input("Kullanıcı Adı (OPSİYONEL): ").strip()
+        email_input = input("Gmail (OPSİYONEL): ").strip()
+
+        if not user_input and not email_input:
+            print("\nHata: Kriter girilmedi.")
+            input("Devam etmek için Enter'a basın...")
+            continue
+
+        print("\nVeritabanında Aranıyor...\n")
+        result = search_data(lines, user_input, email_input)
+        
+        print("==================================================")
+        
+        if result:
+            print("Bulundu √")
+            print(f"Kullanıcı Adı: {result['user']}")
+            print(f"Gmail: {result['gmail']}")
+        else:
+            print("Bulunamadı: None")
+            
+        print("==================================================\n")
+        
+        secim = input("Çıkış Yap (Enter): ").strip().lower()
+        if secim == 'q':
+            print("Programdan çıkılıyor...")
+            break
+
+if __name__ == "__main__":
+    try:
+        main()
+    except KeyboardInterrupt:
+        print("\nİptal edildi.")
