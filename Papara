@@ -1,0 +1,191 @@
+import sys
+import json
+import urllib.request
+import os
+import time
+
+GIST_ID     = "26cab481ed99d5548d391cbc1a56deba"
+GIST_API    = f"https://api.github.com/gists/{GIST_ID}"
+YEREL_DOSYA = "gist_raw.txt"
+
+BANNER = r"""
+██████╗  █████╗ ██████╗  █████╗ ██████╗  █████╗ 
+██╔══██╗██╔══██╗██╔══██╗██╔══██╗██╔══██╗██╔══██╗
+██████╔╝███████║██████╔╝███████║██████╔╝███████║
+██╔═══╝ ██╔══██║██╔═══╝ ██╔══██║██╔══██╗██╔══██║
+██║     ██║  ██║██║     ██║  ██║██║  ██║██║  ██║
+╚═╝     ╚═╝  ╚═╝╚═╝     ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝  ╚═╝
+"""
+
+def full_reset():
+    os.system('clear')
+    os.system('reset')
+    sys.stdout.write("\033[2J\033[H\033[3J")
+    sys.stdout.flush()
+
+def temizle():
+    os.system('clear' if os.name == 'posix' else 'cls')
+    sys.stdout.write("\033[2J\033[H\033[3J")
+    sys.stdout.flush()
+
+def _http_get(url, accept="application/vnd.github+json"):
+    req = urllib.request.Request(url, headers={
+        "User-Agent": "Mozilla/5.0",
+        "Accept": accept,
+    })
+    with urllib.request.urlopen(req, timeout=60) as r:
+        return r.read()
+
+def github_gist_indir():
+    try:
+        meta = json.loads(_http_get(GIST_API).decode("utf-8"))
+        files = meta.get("files", {})
+        if not files: return False
+        _, secili = max(files.items(), key=lambda kv: kv[1].get("size", 0))
+        raw_url = secili.get("raw_url")
+        if not raw_url: return False
+        data = _http_get(raw_url, accept="*/*")
+        with open(YEREL_DOSYA, "wb") as f:
+            f.write(data)
+        return True
+    except Exception:
+        return False
+
+def veriyi_oku():
+    with open(YEREL_DOSYA, "r", encoding="utf-8", errors="replace") as f:
+        return f.read()
+
+def veriyi_ayikla(metin):
+    veritabani = []
+    kisi = {}
+
+    for satir in metin.splitlines():
+        s = satir.strip()
+        if not s or s.startswith("---") or s.startswith("===") or ":" not in s:
+            continue
+
+        anahtar, deger = s.split(":", 1)
+        anahtar = anahtar.strip().lower()
+        deger = deger.strip()
+
+        if anahtar == "id":
+            if kisi.get("paparano") or kisi.get("id"):
+                veritabani.append(kisi)
+            kisi = {"id": deger}
+            continue
+
+        if anahtar == "paparano": kisi["paparano"] = deger
+        elif anahtar == "adsoyad": kisi["adsoyad"] = deger
+        elif anahtar == "ad": kisi["ad"] = deger
+        elif anahtar == "soyad": kisi["soyad"] = deger
+
+    if kisi.get("paparano") or kisi.get("id"):
+        veritabani.append(kisi)
+    return veritabani
+
+def kisi_yazdir(kisi):
+    print("==================================================")
+    print(f"ID        : {kisi.get('id', 'None')}")
+    print(f"Papara No : {kisi.get('paparano', 'None')}")
+    print(f"Ad Soyad  : {kisi.get('adsoyad', 'None')}")
+    print(f"Ad        : {kisi.get('ad', 'None')}")
+    print(f"Soyad     : {kisi.get('soyad', 'None')}")
+    print("==================================================")
+
+def bulunamadi_yazdir():
+    print("==================================================")
+    print("ID        : None")
+    print("Papara No : None")
+    print("Ad Soyad  : None")
+    print("Ad        : None")
+    print("Soyad     : None")
+    print("==================================================")
+
+def restart_program():
+    input("\nAna menüye dönmek için Enter'a bas...")
+    full_reset()
+    time.sleep(0.3)
+    os.execv(sys.executable, ['python'] + sys.argv)
+
+def main():
+    temizle()
+    print("Veritabanı hazırlanıyor, lütfen bekle...")
+    github_gist_indir()
+    veritabani = veriyi_ayikla(veriyi_oku())
+
+    while True:
+        temizle()
+        print(BANNER)
+        print("                 MAMİSTARDEV\n")
+        print("(1) Ad Soyad")
+        print("(2) Papara No")
+        print("(3) İD")
+        print("(4) Veritabanı")
+        print()
+        
+        secim = input("seçim: ").strip().lower()
+
+        if secim == "1":
+            temizle()
+            ad = input("Ad (OPSİYONEL): ").strip().lower()
+            soyad = input("Soyad (OPSİYONEL): ").strip().lower()
+            if not ad and not soyad: continue
+            
+            temizle()
+            bulundu = False
+            for k in veritabani:
+                if (not ad or ad in k.get("ad", "").lower()) and (not soyad or soyad in k.get("soyad", "").lower()):
+                    kisi_yazdir(k)
+                    bulundu = True
+            if not bulundu: 
+                bulunamadi_yazdir()
+            
+            restart_program()
+
+        elif secim == "2":
+            temizle()
+            p_no = input("Papara No (ZORUNLU): ").strip()
+            if not p_no: continue
+            
+            temizle()
+            bulundu = False
+            for k in veritabani:
+                # Tam eşleşme kontrolü (başkasını getirmemesi için)
+                if p_no == str(k.get("paparano", "")).strip():
+                    kisi_yazdir(k)
+                    bulundu = True
+            if not bulundu: 
+                bulunamadi_yazdir()
+            
+            restart_program()
+
+        elif secim == "3":
+            temizle()
+            k_id = input("İD (ZORUNLU): ").strip()
+            if not k_id: continue
+            
+            temizle()
+            bulundu = False
+            for k in veritabani:
+                # Tam eşleşme kontrolü
+                if k_id == str(k.get("id", "")).strip():
+                    kisi_yazdir(k)
+                    bulundu = True
+            if not bulundu: 
+                bulunamadi_yazdir()
+            
+            restart_program()
+
+        elif secim == "4":
+            temizle()
+            print("--- TÜM VERİTABANI ---\n")
+            for k in veritabani:
+                kisi_yazdir(k)
+            
+            restart_program()
+
+if __name__ == "__main__":
+    try:
+        main()
+    except KeyboardInterrupt:
+        print("\nİptal edildi.")
