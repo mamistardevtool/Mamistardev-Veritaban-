@@ -1,0 +1,210 @@
+import os
+import sys
+import urllib.request
+import time
+import re
+
+# VERİTABANI
+RAW_URL = "https://files.catbox.moe/5asrk9.sql"
+CACHE_FILE = "instagram_cache.sql"
+
+def download_data():
+    if os.path.exists(CACHE_FILE):
+        try:
+            os.remove(CACHE_FILE)
+        except:
+            pass
+
+    print("Veritabanı indiriliyor, lütfen bekle...")
+    try:
+        req = urllib.request.Request(RAW_URL, headers={'User-Agent': 'Mozilla/5.0'})
+        with urllib.request.urlopen(req, timeout=60) as response:
+            data = response.read().decode('utf-8', errors='ignore')
+            
+            if "404: Not Found" in data or "<html" in data.lower():
+                print("\nHata: Link bulunamadı veya dosya bozuk!")
+                return []
+                
+            lines = data.splitlines()
+            with open(CACHE_FILE, "w", encoding="utf-8") as f:
+                f.write(data)
+            return lines
+    except Exception as e:
+        print(f"\nHata: Veri indirilemedi! ({e})")
+        return []
+
+def parse_sql(lines):
+    records = []
+    pattern = re.compile(r"VALUES\s*\(\s*'([^']*)'\s*,\s*'([^']*)'\s*,\s*'([^']*)'\s*,\s*'([^']*)'\s*,\s*'([^']*)'\s*,\s*'([^']*)'\s*,\s*'([^']*)'\s*\)", re.IGNORECASE)
+    
+    current_insert = ""
+    for line in lines:
+        current_insert += " " + line.strip()
+        if ";" in line:
+            match = pattern.search(current_insert)
+            if match:
+                records.append({
+                    "id": match.group(1),
+                    "username": match.group(2),
+                    "gsm": match.group(3),
+                    "adres": match.group(4),
+                    "email": match.group(5),
+                    "kadi": match.group(6),
+                    "engel": match.group(7)
+                })
+            current_insert = ""
+    return records
+
+def search_data(records, target_type, target_value):
+    target_value = target_value.strip().lower()
+    
+    for r in records:
+        if target_type == "id" and target_value in r["id"].lower():
+            return r
+        elif target_type == "user" and (target_value in r["username"].lower() or target_value in r["kadi"].lower()):
+            return r
+        elif target_type == "email" and target_value in r["email"].lower():
+            return r
+        elif target_type == "gsm" and target_value in r["gsm"].lower():
+            return r
+                
+    return None
+
+def print_record(r):
+    print("==================================================")
+    print(f"İD        : {r['id']}")
+    print(f"Username  : {r['username']}")
+    print(f"GSM       : {r['gsm'] if r['gsm'] else 'None'}")
+    print(f"Adres     : {r['adres'] if r['adres'] else 'None'}")
+    print(f"E-posta   : {r['email'] if r['email'] else 'None'}")
+    print(f"K-Adı     : {r['kadi'] if r['kadi'] else 'None'}")
+    print("==================================================")
+
+def print_none():
+    print("==================================================")
+    print("İD        : None")
+    print("Username  : None")
+    print("GSM       : None")
+    print("Adres     : None")
+    print("E-posta   : None")
+    print("K-Adı     : None")
+    print("==================================================")
+
+def full_reset():
+    os.system('clear' if os.name == 'posix' else 'cls')
+    os.system('reset')
+    sys.stdout.write("\033[2J\033[H\033[3J")
+    sys.stdout.flush()
+
+def temizle():
+    os.system('clear' if os.name == 'posix' else 'cls')
+    sys.stdout.write("\033[2J\033[H\033[3J")
+    sys.stdout.flush()
+
+def restart_program():
+    input("\nAna menüye dönmek için Enter'a bas...")
+    full_reset()
+    time.sleep(0.3)
+    os.execv(sys.executable, ['python'] + sys.argv)
+
+def main():
+    temizle()
+    lines = download_data()
+    
+    if not lines:
+        input("\nÇıkmak için Enter'a bas...")
+        sys.exit(1)
+        
+    print("Veritabanı işleniyor, lütfen bekle...")
+    records = parse_sql(lines)
+
+    while True:
+        temizle()
+        # PEMBE BANNER (Ekrana tam sığacak şekilde küçültüldü)
+        print("\033[95m")
+        print("  ██╗███╗   ██╗███████╗████████╗ █████╗  ██████╗ ██████╗  █████╗ ███╗   ███╗")
+        print("  ██║████╗  ██║██╔════╝╚══██╔══╝██╔══██╗██╔════╝ ██╔══██╗██╔══██╗████╗ ████║")
+        print("  ██║██╔██╗ ██║███████╗   ██║   ███████║██║  ███╗██████╔╝███████║██╔████╔██║")
+        print("  ██║██║╚██╗██║╚════██║   ██║   ██╔══██║██║   ██║██╔══██╗██╔══██║██║╚██╔╝██║")
+        print("  ██║██║ ╚████║███████║   ██║   ██║  ██║╚██████╔╝██║  ██║██║  ██║██║ ╚═╝ ██║")
+        print("  ╚═╝╚═╝  ╚═══╝╚══════╝   ╚═╝   ╚═╝  ╚═╝ ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝     ╚═╝")
+        print("\033[0m")
+        
+        print("                 MAMİSTARDEV\n")
+        print("(1) İD")
+        print("(2) Username")
+        print("(3) E-posta")
+        print("(4) GSM")
+        print()
+        
+        secim = input("seçim: ").strip()
+
+        if secim in ["1", "(1)"]:
+            temizle()
+            print("-- İD ARAMA --")
+            val = input("İD (ZORUNLU): ").strip()
+            if not val:
+                print("\nHata: İD boş bırakılamaz.")
+                input("Devam etmek için Enter'a basın...")
+                continue
+                
+            temizle()
+            print("Veritabanında Aranıyor...\n")
+            result = search_data(records, "id", val)
+            print_record(result) if result else print_none()
+            restart_program()
+
+        elif secim in ["2", "(2)"]:
+            temizle()
+            print("-- USERNAME ARAMA --")
+            val = input("Username (ZORUNLU): ").strip()
+            if not val:
+                print("\nHata: Username boş bırakılamaz.")
+                input("Devam etmek için Enter'a basın...")
+                continue
+                
+            temizle()
+            print("Veritabanında Aranıyor...\n")
+            result = search_data(records, "user", val)
+            print_record(result) if result else print_none()
+            restart_program()
+
+        elif secim in ["3", "(3)"]:
+            temizle()
+            print("-- E-POSTA ARAMA --")
+            val = input("Gmail (ZORUNLU): ").strip()
+            if not val:
+                print("\nHata: Gmail boş bırakılamaz.")
+                input("Devam etmek için Enter'a basın...")
+                continue
+                
+            temizle()
+            print("Veritabanında Aranıyor...\n")
+            result = search_data(records, "email", val)
+            print_record(result) if result else print_none()
+            restart_program()
+
+        elif secim in ["4", "(4)"]:
+            temizle()
+            print("-- GSM ARAMA --")
+            val = input("GSM (ZORUNLU): ").strip()
+            if not val:
+                print("\nHata: GSM boş bırakılamaz.")
+                input("Devam etmek için Enter'a basın...")
+                continue
+                
+            temizle()
+            print("Veritabanında Aranıyor...\n")
+            result = search_data(records, "gsm", val)
+            print_record(result) if result else print_none()
+            restart_program()
+            
+        else:
+            print("Geçersiz seçim. Lütfen 1, 2, 3 veya 4 girin.")
+            time.sleep(1)
+
+if __name__ == "__main__":
+    try:
+        main()
+    except KeyboardInterrupt:
+        print("\nİptal edildi.")
