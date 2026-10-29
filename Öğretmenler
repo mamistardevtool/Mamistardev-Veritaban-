@@ -1,0 +1,253 @@
+import os
+import sys
+import urllib.request
+import time
+import re
+
+# ÖĞRETMEN VERİTABANI
+RAW_URL = "https://files.catbox.moe/wcj7y3.py"
+CACHE_FILE = "ogretmen_cache.txt"
+
+def download_data():
+    if os.path.exists(CACHE_FILE):
+        with open(CACHE_FILE, "r", encoding="utf-8", errors="ignore") as f:
+            return f.readlines()
+
+    print("Veritabanı indiriliyor, lütfen bekle...")
+    try:
+        req = urllib.request.Request(RAW_URL, headers={'User-Agent': 'Mozilla/5.0'})
+        with urllib.request.urlopen(req, timeout=60) as response:
+            data = response.read().decode('utf-8', errors='ignore')
+            lines = data.splitlines()
+            with open(CACHE_FILE, "w", encoding="utf-8") as f:
+                f.write(data)
+            return lines
+    except Exception as e:
+        print(f"\nHata: Veri indirilemedi! ({e})")
+        return []
+
+def parse_data(lines):
+    teachers = []
+    for line in lines:
+        line = line.strip()
+        if not line:
+            continue
+            
+        parts = line.split()
+        if not parts:
+            continue
+            
+        if "Ortaokul" in line or "Lise" in line:
+            if "Ortaokul" in line:
+                okul_turu = "Ortaokul"
+                match = re.search(r'Ortaokul\s+(.*)', line)
+            else:
+                okul_turu = "Lise"
+                match = re.search(r'Lise\s+(.*)', line)
+                
+            ders = match.group(1).strip() if match else "Belirtilmemiş"
+            
+            isim_kismi = line.split(okul_turu)[0].strip()
+            isim_parcalari = isim_kismi.split()
+            
+            if len(isim_parcalari) >= 2:
+                ad = isim_parcalari[0]
+                soyad = " ".join(isim_parcalari[1:])
+            elif len(isim_parcalari) == 1:
+                ad = isim_parcalari[0]
+                soyad = "None"
+            else:
+                continue
+                
+            teachers.append({
+                "ad": ad, "soyad": soyad, "okul": okul_turu, "ders": ders, "raw": line
+            })
+        else:
+            isim_parcalari = line.split()
+            if len(isim_parcalari) >= 2:
+                ad = isim_parcalari[0]
+                soyad = " ".join(isim_parcalari[1:])
+            elif len(isim_parcalari) == 1:
+                ad = isim_parcalari[0]
+                soyad = "None"
+            else:
+                continue
+                
+            teachers.append({
+                "ad": ad, "soyad": soyad, "okul": "None", "ders": "None", "raw": line
+            })
+            
+    return teachers
+
+def search_data(teachers, target_type, target_ad=None, target_soyad=None):
+    results = []
+    if target_type == "adsoyad":
+        t_ad = target_ad.strip().lower() if target_ad else None
+        t_soyad = target_soyad.strip().lower() if target_soyad else None
+        
+        for t in teachers:
+            ad_ok = t_ad in t["ad"].lower() if t_ad else True
+            soyad_ok = t_soyad in t["soyad"].lower() if t_soyad else True
+            if ad_ok and soyad_ok:
+                results.append(t)
+    elif target_type == "ortaokul":
+        results = [t for t in teachers if t["okul"] == "Ortaokul"]
+    elif target_type == "lise":
+        results = [t for t in teachers if t["okul"] == "Lise"]
+    elif target_type == "universite":
+        results = [t for t in teachers if t["okul"] == "Üniversite"]
+        
+    return results
+
+def print_teacher(t):
+    print("==================================================")
+    print(f"Ad: {t['ad']}")
+    print(f"Soyad: {t['soyad']}")
+    print(f"Ders: {t['ders']}")
+    print("==================================================")
+
+def print_none():
+    print("==================================================")
+    print("Ad: None")
+    print("Soyad: None")
+    print("Ders: None")
+    print("==================================================")
+
+def full_reset():
+    os.system('clear' if os.name == 'posix' else 'cls')
+    os.system('reset')
+    sys.stdout.write("\033[2J\033[H\033[3J")
+    sys.stdout.flush()
+
+def temizle():
+    os.system('clear' if os.name == 'posix' else 'cls')
+    sys.stdout.write("\033[2J\033[H\033[3J")
+    sys.stdout.flush()
+
+def restart_program():
+    input("\nAna menüye dönmek için Enter'a bas...")
+    full_reset()
+    time.sleep(0.1)
+    os.execv(sys.executable, ['python'] + sys.argv)
+
+def main():
+    temizle()
+    lines = download_data()
+    if not lines:
+        input("\nBağlantı hatası. Enter'a bas...")
+        sys.exit(1)
+        
+    teachers = parse_data(lines)
+
+    while True:
+        temizle()
+        # SARI RENK BANNER
+        print("\033[93m")
+        print("  ██████╗  ██████╗ ██████╗ ███████╗████████╗███╗   ███╗███████╗███╗   ██╗")
+        print("  ██╔══██╗██╔════╝ ██╔══██╗██╔════╝╚══██╔══╝████╗ ████║██╔════╝████╗  ██║")
+        print("  ██║  ██║██║  ███╗██████╔╝█████╗     ██║   ██╔████╔██║█████╗  ██╔██╗ ██║")
+        print("  ██║  ██║██║   ██║██╔══██╗██╔══╝     ██║   ██║╚██╔╝██║██╔══╝  ██║╚██╗██║")
+        print("  ██████╔╝╚██████╔╝██║  ██║███████╗   ██║   ██║ ╚═╝ ██║███████╗██║ ╚████║")
+        print("  ╚═════╝  ╚═════╝ ╚═╝  ╚═╝╚══════╝   ╚═╝   ╚═╝     ╚═╝╚══════╝╚═╝  ╚═══╝")
+        print("\033[0m")
+        print("                 Mamistardev Öğretmen 10K\n")
+        
+        print("(1) Ad Soyad")
+        print("(2) Okul 1")
+        print("(3) Okul 2")
+        print("(4) Okul 3")
+        print()
+        
+        secim = input("seçim: ").strip()
+
+        if secim in ["1", "(1)"]:
+            temizle()
+            ad = input("Ad (Opsiyonel): ").strip()
+            soyad = input("Soyad (Opsiyonel): ").strip()
+            
+            if not ad and not soyad:
+                print("\nHata: En az bir kriter girin.")
+                input("Devam etmek için Enter'a bas...")
+                continue
+                
+            temizle()
+            print("Veritabanında Aranıyor...\n")
+            res = search_data(teachers, "adsoyad", ad, soyad)
+            
+            if res:
+                print(f"Toplam {len(res)} kayıt bulundu.\n")
+                for r in res:
+                    print_teacher(r)
+            else:
+                print_none()
+            restart_program()
+
+        elif secim in ["2", "(2)"]:
+            temizle()
+            print("-- OKUL 1 --")
+            ders_input = input("Ortaokul Ders (Opsiyonel): ").strip()
+            
+            temizle()
+            print("Veritabanında Aranıyor...\n")
+            res = [t for t in teachers if t["okul"] == "Ortaokul"]
+            
+            if ders_input:
+                res = [t for t in res if ders_input.lower() in t["ders"].lower()]
+                
+            if res:
+                print(f"Toplam {len(res)} kayıt bulundu.\n")
+                for r in res:
+                    print_teacher(r)
+            else:
+                print_none()
+            restart_program()
+
+        elif secim in ["3", "(3)"]:
+            temizle()
+            print("-- OKUL 2 --")
+            ders_input = input("Lise Ders (Opsiyonel): ").strip()
+            
+            temizle()
+            print("Veritabanında Aranıyor...\n")
+            res = [t for t in teachers if t["okul"] == "Lise"]
+            
+            if ders_input:
+                res = [t for t in res if ders_input.lower() in t["ders"].lower()]
+                
+            if res:
+                print(f"Toplam {len(res)} kayıt bulundu.\n")
+                for r in res:
+                    print_teacher(r)
+            else:
+                print_none()
+            restart_program()
+
+        elif secim in ["4", "(4)"]:
+            temizle()
+            print("-- OKUL 3 --")
+            ders_input = input("Üniversite Ders (Opsiyonel): ").strip()
+            
+            temizle()
+            print("Veritabanında Aranıyor...\n")
+            res = search_data(teachers, "universite")
+            
+            if ders_input:
+                res = [t for t in res if ders_input.lower() in t["ders"].lower()]
+                
+            if res:
+                print(f"Toplam {len(res)} kayıt bulundu.\n")
+                for r in res:
+                    print_teacher(r)
+            else:
+                print_none()
+            restart_program()
+            
+        else:
+            print("Geçersiz seçim. Lütfen 1, 2, 3 veya 4 girin.")
+            time.sleep(1)
+
+if __name__ == "__main__":
+    try:
+        main()
+    except KeyboardInterrupt:
+        print("\nİptal edildi.")
