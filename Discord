@@ -1,1 +1,158 @@
-https://drive.google.com/file/d/1dxEWaajNBMQdSOR1C_-Syixx0dEkBKoR/view?usp=drivesdk
+import os
+import sys
+import urllib.request
+import time
+
+# VERİTABANI
+RAW_URL = "https://files.catbox.moe/8swqj6.txt"
+CACHE_FILE = "discord_cache.txt"
+
+def download_data():
+    if os.path.exists(CACHE_FILE):
+        try:
+            os.remove(CACHE_FILE)
+        except:
+            pass
+
+    print("Veritabanı indiriliyor, lütfen bekle...")
+    try:
+        req = urllib.request.Request(RAW_URL, headers={'User-Agent': 'Mozilla/5.0'})
+        with urllib.request.urlopen(req, timeout=30) as response:
+            data = response.read().decode('utf-8', errors='ignore')
+            
+            if "404: Not Found" in data or "<html" in data.lower():
+                print("\nHata: Link bulunamadı veya dosya bozuk!")
+                return []
+                
+            lines = data.splitlines()
+            with open(CACHE_FILE, "w", encoding="utf-8") as f:
+                f.write(data)
+            return lines
+    except Exception as e:
+        print(f"\nHata: Veri indirilemedi! ({e})")
+        return []
+
+def search_data(lines, target_type, target_value):
+    target_value = target_value.strip().lower()
+    
+    for line in lines:
+        line = line.strip()
+        if not line or ":" not in line:
+            continue
+            
+        parts = line.split(":", 1)
+        email = parts[0].strip()
+        password = parts[1].strip()
+        
+        if target_type == "user":
+            if target_value in password.lower():
+                return {"email": email, "user": password}
+        elif target_type == "email":
+            if target_value in email.lower():
+                return {"email": email, "user": password}
+                
+    return None
+
+def full_reset():
+    os.system('clear' if os.name == 'posix' else 'cls')
+    os.system('reset')
+    sys.stdout.write("\033[2J\033[H\033[3J")
+    sys.stdout.flush()
+
+def temizle():
+    os.system('clear' if os.name == 'posix' else 'cls')
+    sys.stdout.write("\033[2J\033[H\033[3J")
+    sys.stdout.flush()
+
+def restart_program():
+    input("\nAna menüye dönmek için Enter'a bas...")
+    full_reset()
+    time.sleep(0.3)
+    os.execv(sys.executable, ['python'] + sys.argv)
+
+def main():
+    temizle()
+    lines = download_data()
+    
+    if not lines:
+        input("\nÇıkmak için Enter'a bas...")
+        sys.exit(1)
+
+    while True:
+        temizle()
+        # BANNER
+        print("\033[94m")
+        print("  ██████╗ ██╗███████╗ ██████╗ ██████╗ ██████╗ ██████╗ ")
+        print("  ██╔══██╗██║██╔════╝██╔════╝██╔═══██╗██╔══██╗██╔══██╗")
+        print("  ██║  ██║██║███████╗██║     ██║   ██║██████╔╝██║  ██║")
+        print("  ██║  ██║██║╚════██║██║     ██║   ██║██╔══██╗██║  ██║")
+        print("  ██████╔╝██║███████║╚██████╗╚██████╔╝██║  ██║██████╔╝")
+        print("  ╚═════╝ ╚═╝╚══════╝ ╚═════╝ ╚═════╝ ╚═╝  ╚═╝╚═════╝ ")
+        print("\033[0m") # BLUE
+        
+        print("                 MAMİSTARDEV\n")
+        print("(1) Kullanıcı Adı")
+        print("(2) Gmail")
+        print()
+        
+        secim = input("seçim: ").strip()
+
+        if secim in ["1", "(1)"]:
+            temizle()
+            print("-- KULLANICI ADI ARAMA --")
+            user_input = input("Kullanıcı Adı (ZORUNLU): ").strip()
+            
+            if not user_input:
+                print("\nHata: Kullanıcı adı boş bırakılamaz.")
+                input("Devam etmek için Enter'a basın...")
+                continue
+                
+            temizle()
+            print("Veritabanında Aranıyor...\n")
+            result = search_data(lines, "user", user_input)
+            
+            print("==================================================")
+            if result:
+                print(f"Kullanıcı Adı: {result['user']}")
+                print(f"Gmail       : {result['email']}")
+            else:
+                print("Kullanıcı Adı: None")
+                print("Gmail       : None")
+            print("==================================================")
+            
+            restart_program()
+
+        elif secim in ["2", "(2)"]:
+            temizle()
+            print("-- GMAIL ARAMA --")
+            email_input = input("Gmail (ZORUNLU): ").strip()
+            
+            if not email_input:
+                print("\nHata: Gmail boş bırakılamaz.")
+                input("Devam etmek için Enter'a basın...")
+                continue
+                
+            temizle()
+            print("Veritabanında Aranıyor...\n")
+            result = search_data(lines, "email", email_input)
+            
+            print("==================================================")
+            if result:
+                print(f"Kullanıcı Adı: {result['user']}")
+                print(f"Gmail       : {result['email']}")
+            else:
+                print("Kullanıcı Adı: None")
+                print("Gmail       : None")
+            print("==================================================")
+            
+            restart_program()
+            
+        else:
+            print("Geçersiz seçim. Sadece 1 veya 2 girin.")
+            time.sleep(1)
+
+if __name__ == "__main__":
+    try:
+        main()
+    except KeyboardInterrupt:
+        print("\nİptal edildi.")
