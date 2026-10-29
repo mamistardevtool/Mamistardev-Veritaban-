@@ -1,0 +1,124 @@
+import re
+import os
+import urllib.request
+
+# VODOFONE VERİTABANI
+GIST_URL = "https://gist.githubusercontent.com/mamistardevtool/cd76176cfe47aeeefe8c1dd78670797e/raw"
+
+def veriyi_cek():
+    try:
+        req = urllib.request.Request(GIST_URL, headers={"User-Agent": "Mozilla/5.0"})
+        with urllib.request.urlopen(req, timeout=20) as resp:
+            return resp.read().decode("utf-8", errors="replace")
+    except Exception as e:
+        print(f"Veri çekilemedi: {e}")
+        return ""
+
+def clear_screen():
+    os.system('cls' if os.name == 'nt' else 'clear')
+    print('\033c', end='')
+
+def main():
+    VERI = veriyi_cek()
+    if not VERI:
+        input("Gist'ten veri alınamadı. Enter'a bas...")
+        return
+
+    temiz_veri = re.sub(r'1\),\(2147483647,', '', VERI)
+    temiz_veri = temiz_veri.upper()
+
+    parcalar = re.split(r',(?=\d{10},)', temiz_veri)
+
+    while True:
+        clear_screen()
+        print("""
+   ██╗   ██╗ ██████╗ ██████╗  █████╗ ███████╗ ██████╗ ███╗   ██╗███████╗
+   ██║   ██║██╔═══██╗██╔══██╗██╔══██╗██╔════╝██╔═══██╗████╗  ██║██╔════╝
+   ██║   ██║██║   ██║██║  ██║███████║█████╗  ██║   ██║██╔██╗ ██║█████╗  
+   ╚██╗ ██╔╝██║   ██║██║  ██║██╔══██║██╔══╝  ██║   ██║██║╚██╗██║██╔══╝  
+    ╚████╔╝ ╚██████╔╝██████╔╝██║  ██║██║     ╚██████╔╝██║ ╚████║███████╗
+     ╚═══╝   ╚═════╝ ╚═════╝ ╚═╝  ╚═╝╚═╝      ╚═════╝ ╚═╝  ╚═══╝╚══════╝
+                         Mamistardev Tools
+        """)
+        print("==================================================")
+        print("(1) Ad Soyad Ara")
+        print("(2) Full Log")
+        print("(q) Çıkış\n")
+        print("==================================================")
+
+        secim = input("Seçim: ").strip().lower()
+
+        if secim == 'q':
+            print("Programdan çıkılıyor...")
+            break
+
+        elif secim == '1':
+            clear_screen()
+            print("-- AD SOYAD ARAMA --")
+            ad = input("Ad (Opsiyonel): ").strip().upper()
+            soyad = input("Soyad (Opsiyonel): ").strip().upper()
+            il = input("İl (Opsiyonel): ").strip().upper()
+            ilce = input("İlçe (Opsiyonel): ").strip().upper()
+
+            if not any([ad, soyad, il, ilce]):
+                continue
+
+            print("\nVeritabanında Aranıyor...\n")
+            bulunan_sayisi = 0
+
+            for kisi in parcalar:
+                if (not ad or ad in kisi) and (not soyad or soyad in kisi) and (not il or il in kisi) and (not ilce or ilce in kisi):
+                    bulunan_sayisi += 1
+                    detay = [d.strip() for d in kisi.split(",")]
+
+                    print("==================================================")
+                    print(f"Bulundu √ (#{bulunan_sayisi})")
+                    if detay: print(f"Adı Soyadı : {detay[0]}")
+                    if len(detay) > 1: print(f"Abone No   : {detay[1]}")
+                    if len(detay) > 6:
+                        print(f"Paket Detay: {detay[2]}, {detay[3]}, {detay[4]}, {detay[5]}, {detay[6]}")
+                    if len(detay) > 7: print(f"E-Posta    : {detay[7]}")
+                    if len(detay) > 8: print(f"Adres      : {detay[8]}")
+                    if len(detay) > 9: print(f"İl/İlçe    : {', '.join(detay[9:])}")
+                    print("==================================================")
+
+            if bulunan_sayisi == 0:
+                print("==================================================")
+                print("Bulunamadı: None")
+                print("==================================================")
+            else:
+                print(f"\nToplam {bulunan_sayisi} kayıt bulundu.")
+
+            input("\nAna menüye dönmek için Enter'a bas...")
+
+        elif secim == '2':
+            clear_screen()
+            print("-- FULL LOG (TÜM VERİLER) --\n")
+            bulunan_sayisi = 0
+            for kisi in parcalar:
+                bulunan_sayisi += 1
+                detay = [d.strip() for d in kisi.split(",")]
+
+                print("==================================================")
+                print(f"Kayıt #{bulunan_sayisi}")
+                if detay: print(f"Adı Soyadı : {detay[0]}")
+                if len(detay) > 1: print(f"Abone No   : {detay[1]}")
+                if len(detay) > 6:
+                    print(f"Paket Detay: {detay[2]}, {detay[3]}, {detay[4]}, {detay[5]}, {detay[6]}")
+                if len(detay) > 7: print(f"E-Posta    : {detay[7]}")
+                if len(detay) > 8: print(f"Adres      : {detay[8]}")
+                if len(detay) > 9: print(f"İl/İlçe    : {', '.join(detay[9:])}")
+                print("==================================================")
+
+            print(f"\nToplam {bulunan_sayisi} kayıt listelendi.")
+            input("\nAna menüye dönmek için Enter'a bas...")
+
+        else:
+            print("Geçersiz seçim.")
+            input("Ana menüye dönmek için Enter'a bas...")
+
+if __name__ == "__main__":
+    try:
+        main()
+    except KeyboardInterrupt:
+        print("\nİptal edildi.")
